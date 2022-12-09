@@ -1,0 +1,49 @@
+image: python:3.9
+
+include:
+  - template: Dependency-Scanning.gitlab-ci.yml
+  - template: SAST.gitlab-ci.yml
+  - template: Secret-Detection.gitlab-ci.yml
+
+stages:
+  - build
+  - lint
+  - test
+  - release
+
+packaging:
+  stage: build
+  script:
+    - pip install --upgrade setuptools wheel
+    - python3 setup.py sdist bdist_wheel
+  artifacts:
+    paths:
+      - dist
+
+black:
+  stage: lint
+  script:
+    - pip install black
+    - black rtspbrute/ tests/ --check
+
+isort:
+  stage: lint
+  script:
+    - pip install isort
+    - isort --profile black rtspbrute/ tests/ --check
+
+pytest:
+  stage: test
+  script:
+    - pip install dist/*.whl
+    - pip install pytest pytest-cov
+    - pytest
+    - pytest --cov=rtspbrute
+
+upload:
+  stage: release
+  only:
+    - tags
+  script:
+    - pip install --upgrade twine
+    - twine upload dist/*
