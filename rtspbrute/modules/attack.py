@@ -136,12 +136,12 @@ def get_screenshot(rtsp_url: str, tries=1):
     try:
         with av.open(
             rtsp_url,
-            options={
-                "rtsp_transport": "tcp",
-                "rtsp_flags": "prefer_tcp",
-                "stimeout": "3000000",
-            },
-            timeout=60.0,
+            #options={
+            #    "rtsp_transport": "tcp",
+            #    "rtsp_flags": "prefer_tcp",
+            #    "stimeout": "3000000",
+            #},
+            timeout=30.0,
         ) as container:
             stream = container.streams.video[0]
             if _is_video_stream(stream):
@@ -184,7 +184,7 @@ def get_screenshot(rtsp_url: str, tries=1):
             return get_screenshot(rtsp_url, tries)
         else:
             console.print(
-                f"[italic red]Missed screenshot of [underline]{rtsp_url}[/underline] - if you see this message a lot, consider reducing the number of screenshot threads",
+                f"[italic red]Missed screenshot of [underline]{rtsp_url}[/underline] - stream not live or too many threads",
             )
             return
     except Exception as e:
