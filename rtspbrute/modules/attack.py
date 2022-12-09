@@ -14,7 +14,6 @@ PORTS: List[int]
 PICS_FOLDER: Path
 
 DUMMY_ROUTE = "/0x8b6c42"
-MAX_SCREENSHOT_TRIES = 2
 
 # 401, 403: credentials are wrong but the route might be okay.
 # 404: route is incorrect but the credentials might be okay.
@@ -126,22 +125,17 @@ def attack_credentials(target: RTSPClient):
 
 def _is_video_stream(stream):
     return (
-        stream.profile is not None
-        and stream.start_time is not None
-        and stream.codec_context.format is not None
+            stream.profile is not None
+            and stream.start_time is not None
+            and stream.codec_context.format is not None
     )
 
 
-def get_screenshot(rtsp_url: str, tries=1):
+def get_screenshot(rtsp_url: str):
     try:
         with av.open(
-            rtsp_url,
-            options={
-                "rtsp_transport": "tcp",
-                "rtsp_flags": "prefer_tcp",
-                "stimeout": "3000000",
-            },
-            timeout=60.0,
+                rtsp_url,
+                timeout=30.0,
         ) as container:
             stream = container.streams.video[0]
             if _is_video_stream(stream):
@@ -158,36 +152,8 @@ def get_screenshot(rtsp_url: str, tries=1):
                 if logger_is_enabled:
                     logger.debug(f"Captured screenshot for {rtsp_url}")
                 return file_path
-            else:
-                # There's a high possibility that this video stream is broken
-                # or something else, so we try again just to make sure.
-                if tries < MAX_SCREENSHOT_TRIES:
-                    container.close()
-                    tries += 1
-                    return get_screenshot(rtsp_url, tries)
-                else:
-                    if logger_is_enabled:
-                        logger.debug(
-                            f"Broken video stream or unknown issues with {rtsp_url}"
-                        )
-                    return
-    except (MemoryError, PermissionError, av.InvalidDataError) as e:
-        # These errors occur when there's too much SCREENSHOT_THREADS.
-        if logger_is_enabled:
-            logger.debug(f"Missed screenshot of {rtsp_url}: {repr(e)}")
-        # Try one more time in hope for luck.
-        if tries < MAX_SCREENSHOT_TRIES:
-            tries += 1
-            console.print(
-                f"[yellow]Retry to get a screenshot of the [underline]{rtsp_url}"
-            )
-            return get_screenshot(rtsp_url, tries)
-        else:
-            console.print(
-                f"[italic red]Missed screenshot of [underline]{rtsp_url}[/underline] - if you see this message a lot, consider reducing the number of screenshot threads",
-            )
-            return
     except Exception as e:
-        if logger_is_enabled:
-            logger.debug(f"get_screenshot failed with {rtsp_url}: {repr(e)}")
-        return
+        console.print(
+            f"[bold]Screenshot failed for",
+            f"[underline red]{rtsp_url}: {repr(e)}",
+        )

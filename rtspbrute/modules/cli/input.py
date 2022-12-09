@@ -69,7 +69,7 @@ parser.add_argument(
 parser.add_argument(
     "-ct",
     "--check-threads",
-    default=500,
+    default=1000,
     type=int,
     help="the number of threads to brute-force the routes",
     metavar="N",
