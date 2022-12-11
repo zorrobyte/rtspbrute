@@ -132,19 +132,7 @@ def _is_video_stream(stream):
     )
 
 
-def get_screenshot(rtsp_url: str):
-    try:
-        file_name = escape_chars(f"{rtsp_url.lstrip('rtsp://')}.jpg")
-        file_path = PICS_FOLDER / file_name
-
-        container = av.open(rtsp_url, timeout=60.0)
-        for frame in container.decode(video=0):
-            frame.to_image().save(file_path)
-            print("Grabbed image!")
-            return file_path
-    except:
-        pass
-    """   
+def get_screenshot(rtsp_url: str, tries=1):
     try:
         with av.open(
             rtsp_url,
@@ -203,4 +191,3 @@ def get_screenshot(rtsp_url: str):
         if logger_is_enabled:
             logger.debug(f"get_screenshot failed with {rtsp_url}: {repr(e)}")
         return
-        """
