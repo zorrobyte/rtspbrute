@@ -136,11 +136,11 @@ def get_screenshot(rtsp_url: str, tries=1):
     try:
         with av.open(
             rtsp_url,
-            options={
-                "rtsp_transport": "tcp",
-                "rtsp_flags": "prefer_tcp",
-                "stimeout": "3000000",
-            },
+            #options={
+            #    "rtsp_transport": "tcp",
+            #    "rtsp_flags": "prefer_tcp",
+            #    "stimeout": "3000000",
+            #},
             timeout=60.0,
         ) as container:
             stream = container.streams.video[0]
