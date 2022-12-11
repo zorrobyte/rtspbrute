@@ -141,7 +141,7 @@ def get_screenshot(rtsp_url: str, tries=1):
             #    "rtsp_flags": "prefer_tcp",
             #    "stimeout": "3000000",
             #},
-            timeout=60.0,
+            timeout=30.0,
         ) as container:
             stream = container.streams.video[0]
             if _is_video_stream(stream):
