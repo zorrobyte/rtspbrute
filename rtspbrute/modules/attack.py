@@ -181,7 +181,8 @@ def get_screenshot(rtsp_url: str, tries=1):
             console.print(
                 f"[yellow]Retry to get a screenshot of the [underline]{rtsp_url}"
             )
-            return get_screenshot(rtsp_url, tries)
+            #return get_screenshot(rtsp_url, tries)
+            return print("retry skipped")
         else:
             console.print(
                 f"[italic red]Missed screenshot of [underline]{rtsp_url}[/underline] - stream not live or too many threads",
