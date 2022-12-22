@@ -132,63 +132,44 @@ def _is_video_stream(stream):
     )
 
 
-def get_screenshot(rtsp_url: str, tries=1):
-    try:
-        with av.open(
-            rtsp_url,
-            #options={
-            #    "rtsp_transport": "tcp",
-            #    "rtsp_flags": "prefer_tcp",
-            #    "stimeout": "3000000",
-            #},
-            timeout=30.0,
-        ) as container:
-            stream = container.streams.video[0]
-            if _is_video_stream(stream):
-                file_name = escape_chars(f"{rtsp_url.lstrip('rtsp://')}.jpg")
-                file_path = PICS_FOLDER / file_name
-                stream.thread_type = "AUTO"
-                for frame in container.decode(video=0):
-                    frame.to_image().save(file_path)
-                    break
-                console.print(
-                    f"[bold]Captured screenshot for",
-                    f"[underline cyan]{rtsp_url}",
-                )
-                if logger_is_enabled:
-                    logger.debug(f"Captured screenshot for {rtsp_url}")
-                return file_path
-            else:
-                # There's a high possibility that this video stream is broken
-                # or something else, so we try again just to make sure.
-                if tries < MAX_SCREENSHOT_TRIES:
-                    container.close()
-                    tries += 1
-                    return get_screenshot(rtsp_url, tries)
-                else:
-                    if logger_is_enabled:
-                        logger.debug(
-                            f"Broken video stream or unknown issues with {rtsp_url}"
-                        )
-                    return
-    except (MemoryError, PermissionError, av.InvalidDataError) as e:
-        # These errors occur when there's too much SCREENSHOT_THREADS.
+def get_screenshot(rtsp_url: str):
+    # Open a container using the specified RTSP URL
+    with av.open(rtsp_url, timeout=30.0) as container:
+        # Get the first video stream in the container
+        stream = next(s for s in container.streams if s.type == 'video')
+        # Set the thread type for the stream to AUTO
+        stream.thread_type = "AUTO"
+        # Generate a file name for the screenshot
+        file_name = escape_chars(f"{rtsp_url.lstrip('rtsp://')}.jpg")
+        # Generate a file path for the screenshot
+        file_path = PICS_FOLDER / file_name
+        # Decode the video stream and save the first frame as a screenshot
+        for frame in container.decode(video=0):
+            frame.to_image().save(file_path)
+            # Exit the loop after saving the first frame
+            break
+        console.print(f"[bold]Captured screenshot for", f"[underline cyan]{rtsp_url}",)
         if logger_is_enabled:
-            logger.debug(f"Missed screenshot of {rtsp_url}: {repr(e)}")
-        # Try one more time in hope for luck.
-        if tries < MAX_SCREENSHOT_TRIES:
-            tries += 1
-            console.print(
-                f"[yellow]Retry to get a screenshot of the [underline]{rtsp_url}"
-            )
-            #return get_screenshot(rtsp_url, tries)
-            return print("retry skipped")
-        else:
-            console.print(
-                f"[italic red]Missed screenshot of [underline]{rtsp_url}[/underline] - stream not live or too many threads",
-            )
+            logger.debug(f"Captured screenshot for {rtsp_url}")
+        return file_path
+    # Close the container if the try block is exited
+    container.close()
+
+    # Retry the function a certain number of times if an exception is raised
+    for i in range(MAX_SCREENSHOT_TRIES):
+        try:
+            return get_screenshot(rtsp_url)
+        except (MemoryError, PermissionError, av.InvalidDataError) as e:
+            if logger_is_enabled:
+                logger.debug(f"Missed screenshot of {rtsp_url}: {repr(e)}")
+            console.print(f"[yellow]Retrying to get a screenshot of the [underline]{rtsp_url}")
+        except Exception as e:
+            if logger_is_enabled:
+                logger.debug(f"get_screenshot failed with {rtsp_url}: {repr(e)}")
             return
-    except Exception as e:
-        if logger_is_enabled:
-            logger.debug(f"get_screenshot failed with {rtsp_url}: {repr(e)}")
-        return
+    # Return None if the function has been retried the maximum number of times
+    console.print(
+        f"[italic red]Missed screenshot of [underline]{rtsp_url}[/underline] - stream not live or too many threads",
+    )
+    return
+
