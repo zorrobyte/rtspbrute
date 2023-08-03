@@ -1,9 +1,15 @@
 /0/1:1/main
 /0/usrnm:pwd/main
+/0/video2
 /0/video1
+/5
+/4
+/3
+/2
 /1
 /1.AMP
 /1/h264major
+/2/h264major
 /1/stream1
 /1080p
 /11
@@ -26,10 +32,11 @@
 /ONVIF/MediaInput
 /ONVIF/MediaInput?profile=4_def_profile6
 /StdCh1
-/Streaming/Channels/1
+/Streaming/Channels/3
 /Streaming/Channels/101/
 /Streaming/Channels/102
 /Streaming/Channels/2
+/Streaming/Channels/1
 /Streaming/Channels/301
 /Streaming/Channels/501
 /Streaming/channels/201
@@ -82,6 +89,8 @@
 /ch4/0
 /ch4_0
 /channel1
+/channel2
+/channel3
 /gnz_media/main
 /h264
 /h264.sdp
