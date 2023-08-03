@@ -97,6 +97,11 @@ def attack_route(target: RTSPClient):
 def attack_credentials(target: RTSPClient):
     def _log_working_stream():
         console.print("Working stream at", target)
+        
+        # Save target to a file
+        with open('targets.txt', 'a') as f:
+            f.write(str(target) + '\n')
+        
         if logger_is_enabled:
             logger.debug(
                 f"Working stream at {target} with {target.auth_method.name} auth"
