@@ -169,7 +169,7 @@ def get_screenshot(rtsp_url: str):
             # print the error message
             console.print(
                 f"[bold]Screenshot failed, but saved IP to file for",
-                f"[underline red]{rtsp_url}: {repr(e)}",
+                f"[underline yellow]{rtsp_url}: {repr(e)}",
             )
             # save the IP address to an existing file, creates file if it doesn't exist
             with open("unauthorized_ips.txt", "a") as f:
