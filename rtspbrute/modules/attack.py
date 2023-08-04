@@ -160,17 +160,18 @@ def get_screenshot(rtsp_url: str):
                 return file_path
 
     except Exception as e:
+        pass
         # use a regular expression to match the error message "Server returned 401 Unauthorized"
-        match = re.search("Server returned 401 Unauthorized", str(e))
-        if match:
-            # extract the IP address from the rtsp_url string using a regular expression
-            ip_match = re.search(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", rtsp_url)
-            ip_address = ip_match.group()
-            # print the error message
-            console.print(
-                f"[bold]Screenshot failed, but saved IP to file for",
-                f"[underline yellow]{rtsp_url}: {repr(e)}",
-            )
-            # save the IP address to an existing file, creates file if it doesn't exist
-            with open("unauthorized_ips.txt", "a") as f:
-                f.write(ip_address + "\n")
+        #match = re.search("Server returned 401 Unauthorized", str(e))
+        #if match:
+        #    # extract the IP address from the rtsp_url string using a regular expression
+        #    ip_match = re.search(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", rtsp_url)
+        #    ip_address = ip_match.group()
+        #    # print the error message
+        #    console.print(
+        #        f"[bold]Screenshot failed, but saved IP to file for",
+        #        f"[underline red]{rtsp_url}: {repr(e)}",
+        #    )
+        #    # save the IP address to an existing file, creates file if it doesn't exist
+        #    with open("unauthorized_ips.txt", "a") as f:
+        #        f.write(ip_address + "\n")
