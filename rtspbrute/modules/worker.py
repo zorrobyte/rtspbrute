@@ -63,10 +63,28 @@ def screenshot_targets(input_queue: Queue) -> None:
                 PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
         # if "/Streaming/Channels/101/" is not in target_url
         else:
-            image = get_screenshot(target_url)
-            if image:
-                with LOCK:
-                    append_result(image, target_url)
-            PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
+            # check if target_url doesn't have anything after :554/
+            if target_url.endswith(':554/'):
+                # first try the unmodified URL
+                image = get_screenshot(target_url)
+                if image:
+                    with LOCK:
+                        append_result(image, target_url)
+                PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
+
+                # append and iterate /cam/realmonitor?channel=1&subtype=0, /cam/realmonitor?channel=2&subtype=0, ..., /cam/realmonitor?channel=8&subtype=0
+                for i in range(1, 9):
+                    modified_target_url = target_url + f'cam/realmonitor?channel={i}&subtype=0'
+                    image = get_screenshot(modified_target_url)
+                    if image:
+                        with LOCK:
+                            append_result(image, modified_target_url)
+                    PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
+            else:
+                image = get_screenshot(target_url)
+                if image:
+                    with LOCK:
+                        append_result(image, target_url)
+                PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
 
         input_queue.task_done()
