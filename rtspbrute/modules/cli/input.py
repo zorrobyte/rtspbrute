@@ -77,7 +77,7 @@ parser.add_argument(
 parser.add_argument(
     "-bt",
     "--brute-threads",
-    default=200,
+    default=1000,
     type=int,
     help="the number of threads to brute-force the credentials",
     metavar="N",
