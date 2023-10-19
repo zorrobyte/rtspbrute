@@ -38,10 +38,10 @@ This software is provided for research and ethical uses only!
 - `Pillow`
 - `rich`
 
-Install with `pip` or your favorite PyPi package manager.
+Must be installed from this git repo, the one on pip is the older, segfault verion
 
 ```
-pip install rtspbrute
+~~pip install rtspbrute~~
 ```
 
 ## CLI
