@@ -40,9 +40,9 @@ This software is provided for research and ethical uses only!
 
 Must be installed from this git repo, the one on pip is the older, segfault verion
 
-```
+
 ~~pip install rtspbrute~~
-```
+
 
 ## CLI
 
