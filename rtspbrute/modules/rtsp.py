@@ -65,37 +65,49 @@ class RTSPClient:
         if port not in range(65536):
             raise ValueError(f"{port} is not a valid port")
 
-        self.ip = ip
-        self.port = port
-        self.credentials = credentials
+        self.ip: str = ip
+        self.port: int = port
+        self.credentials: str = credentials
         self.routes: List[str] = []
         self.status: Status = Status.NONE
         self.auth_method: AuthMethod = AuthMethod.NONE
         self.last_error: Union[Exception, None] = None
         self.realm: str = ""
         self.nonce: str = ""
-        self.socket = None
-        self.timeout = timeout
-        self.packet = ""
-        self.cseq = 0
-        self.data = ""
+        self.socket: Union[socket.socket, None] = None
+        self.timeout: int = timeout
+        self.packet: str = ""
+        self.cseq: int = 0
+        self.data: str = ""
 
     @property
-    def route(self):
+    def route(self) -> str:
+        """Returns the first route in routes list or empty string if no routes exist."""
         if len(self.routes) > 0:
             return self.routes[0]
         else:
             return ""
 
     @property
-    def is_connected(self):
+    def is_connected(self) -> bool:
+        """Returns True if client is in CONNECTED status."""
         return self.status is Status.CONNECTED
 
     @property
-    def is_authorized(self):
+    def is_authorized(self) -> bool:
+        """Returns True if last response contained '200' status code."""
         return "200" in self.data
 
-    def connect(self, port: int = None):
+    def connect(self, port: int = None) -> bool:
+        """
+        Establish connection to RTSP server.
+        
+        Args:
+            port: Optional port number to override instance port
+            
+        Returns:
+            bool: True if connection successful, False otherwise
+        """
         if self.is_connected:
             return True
 
@@ -105,25 +117,37 @@ class RTSPClient:
         self.packet = ""
         self.cseq = 0
         self.data = ""
-        retry = 0
-        while retry < MAX_RETRIES and not self.is_connected:
+        
+        for retry in range(MAX_RETRIES):
             try:
                 self.socket = socket.create_connection((self.ip, port), self.timeout)
-            except Exception as e:
-                self.status = Status.from_exception(e)
+            except (socket.timeout, TimeoutError) as e:
+                self.status = Status.TIMEOUT
                 self.last_error = e
-
-                retry += 1
+                sleep(1.5)
+            except Exception as e:
+                self.status = Status.UNIDENTIFIED
+                self.last_error = e
                 sleep(1.5)
             else:
                 self.status = Status.CONNECTED
                 self.last_error = None
-
                 return True
 
         return False
 
-    def authorize(self, port=None, route=None, credentials=None):
+    def authorize(self, port=None, route=None, credentials=None) -> bool:
+        """
+        Attempt to authorize with the RTSP server.
+        
+        Args:
+            port: Optional port override
+            route: Optional route override
+            credentials: Optional credentials override
+            
+        Returns:
+            bool: True if authorization attempt completed, False if connection failed
+        """
         if not self.is_connected:
             return False
 
@@ -144,8 +168,9 @@ class RTSPClient:
         except Exception as e:
             self.status = Status.from_exception(e)
             self.last_error = e
-            self.socket.close()
-
+            if self.socket:
+                self.socket.close()
+                self.socket = None
             return False
 
         if not self.data:
