@@ -89,7 +89,7 @@ def attack_route(target: RTSPClient):
             for route in [DUMMY_ROUTE] + ROUTES:
                 ok = attack(target, port=port, route=route)
                 if not ok:
-                    break
+                    continue  # Skip to next route instead of breaking
                 if any(code in target.data for code in ROUTE_OK_CODES):
                     target.port = port
                     target.routes.append(route if route != DUMMY_ROUTE else "/")
