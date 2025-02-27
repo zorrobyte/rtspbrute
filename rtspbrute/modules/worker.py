@@ -2,28 +2,30 @@ from queue import Queue, Empty
 from threading import RLock, current_thread
 import time
 import logging
+from typing import TYPE_CHECKING
 
-from rich.progress import TaskID
+from rich.progress import TaskID, Progress
 
 from rtspbrute.modules.attack import attack_credentials, attack_route, get_screenshot
-from rtspbrute.modules.cli.output import ProgressBar
 from rtspbrute.modules.rtsp import RTSPClient
 from rtspbrute.modules.utils import append_result
 
-PROGRESS_BAR: ProgressBar
+# Initialize module-level variables
+PROGRESS_BAR: Progress
 CHECK_PROGRESS: TaskID
 BRUTE_PROGRESS: TaskID
 SCREENSHOT_PROGRESS: TaskID
-LOCK = RLock()
 
+# Initialize locks and thread tracking
+LOCK = RLock()
+thread_lock = RLock()
+active_threads = set()
+
+# Initialize logger
 logger = logging.getLogger()
 
-# Add thread tracking
-active_threads = set()
-thread_lock = RLock()
-
-
 def brute_routes(input_queue: Queue, output_queue: Queue) -> None:
+    global PROGRESS_BAR, CHECK_PROGRESS, BRUTE_PROGRESS
     try:
         with thread_lock:
             active_threads.add(current_thread())
@@ -53,6 +55,7 @@ def brute_routes(input_queue: Queue, output_queue: Queue) -> None:
 
 
 def brute_credentials(input_queue: Queue, output_queue: Queue) -> None:
+    global PROGRESS_BAR, BRUTE_PROGRESS, SCREENSHOT_PROGRESS
     try:
         with thread_lock:
             active_threads.add(current_thread())
@@ -83,6 +86,7 @@ def brute_credentials(input_queue: Queue, output_queue: Queue) -> None:
 
 
 def screenshot_targets(input_queue: Queue) -> None:
+    global PROGRESS_BAR, SCREENSHOT_PROGRESS
     while True:
         try:
             target_url: str = input_queue.get(timeout=5)

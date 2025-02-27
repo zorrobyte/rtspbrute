@@ -84,25 +84,22 @@ def attack(target: RTSPClient, port=None, route=None, credentials=None):
 
 def attack_route(target: RTSPClient):
     try:
-        # If the stream responds positively to the dummy route, it means
-        # it doesn't require (or respect the RFC) a route and the attack
-        # can be skipped.
         for port in PORTS:
-            ok = attack(target, port=port, route=DUMMY_ROUTE)
-            if ok and any(code in target.data for code in ROUTE_OK_CODES):
-                target.port = port
-                target.routes.append("/")
-                return target
-
-            # Otherwise, bruteforce the routes.
-            for route in ROUTES:
+            # Try all routes regardless of dummy route check
+            for route in [DUMMY_ROUTE] + ROUTES:
                 ok = attack(target, port=port, route=route)
                 if not ok:
                     break
                 if any(code in target.data for code in ROUTE_OK_CODES):
                     target.port = port
-                    target.routes.append(route)
-                    return target
+                    target.routes.append(route if route != DUMMY_ROUTE else "/")
+                    # Don't return immediately - keep checking other routes
+                    continue
+            
+            # If we found any working routes for this port, return the target
+            if target.routes:
+                return target
+                
     finally:
         # Always clean up socket if it exists
         if target.socket:
