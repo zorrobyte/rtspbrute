@@ -114,6 +114,14 @@ class RTSPClient:
         if port is None:
             port = self.port
 
+        # Clean up any existing socket
+        if self.socket:
+            try:
+                self.socket.close()
+            except:
+                pass
+            self.socket = None
+
         self.packet = ""
         self.cseq = 0
         self.data = ""
@@ -139,53 +147,57 @@ class RTSPClient:
     def authorize(self, port=None, route=None, credentials=None) -> bool:
         """
         Attempt to authorize with the RTSP server.
-        
-        Args:
-            port: Optional port override
-            route: Optional route override
-            credentials: Optional credentials override
-            
-        Returns:
-            bool: True if authorization attempt completed, False if connection failed
         """
-        if not self.is_connected:
-            return False
-
-        if port is None:
-            port = self.port
-        if route is None:
-            route = self.route
-        if credentials is None:
-            credentials = self.credentials
-
-        self.cseq += 1
-        self.packet = describe(
-            self.ip, port, route, self.cseq, credentials, self.realm, self.nonce
-        )
         try:
+            if not self.is_connected:
+                return False
+
+            if port is None:
+                port = self.port
+            if route is None:
+                route = self.route
+            if credentials is None:
+                credentials = self.credentials
+
+            self.cseq += 1
+            self.packet = describe(
+                self.ip, port, route, self.cseq, credentials, self.realm, self.nonce
+            )
+            
+            # Set socket timeout
+            if self.socket:
+                self.socket.settimeout(self.timeout)
+            
             self.socket.sendall(self.packet.encode())
             self.data = self.socket.recv(1024).decode()
+
+            if not self.data:
+                return False
+
+            if "Basic" in self.data:
+                self.auth_method = AuthMethod.BASIC
+            elif "Digest" in self.data:
+                self.auth_method = AuthMethod.DIGEST
+                self.realm = find("realm", self.data)
+                self.nonce = find("nonce", self.data)
+            else:
+                self.auth_method = AuthMethod.NONE
+
+            return True
+
         except Exception as e:
             self.status = Status.from_exception(e)
             self.last_error = e
-            if self.socket:
-                self.socket.close()
+            return False
+        
+        finally:
+            # Clean up socket if there was an error
+            if not self.is_connected and self.socket:
+                try:
+                    self.socket.close()
+                except:
+                    pass
                 self.socket = None
-            return False
-
-        if not self.data:
-            return False
-
-        if "Basic" in self.data:
-            self.auth_method = AuthMethod.BASIC
-        elif "Digest" in self.data:
-            self.auth_method = AuthMethod.DIGEST
-            self.realm = find("realm", self.data)
-            self.nonce = find("nonce", self.data)
-        else:
-            self.auth_method = AuthMethod.NONE
-
-        return True
 
     @staticmethod
     def get_rtsp_url(

