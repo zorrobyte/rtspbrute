@@ -38,7 +38,7 @@ setuptools.setup(
         "Tracker": "https://gitlab.com/woolf/RTSPbrute/-/issues",
     },
     packages=setuptools.find_packages(),
-    install_requires=["av<9", "Pillow<9", "rich<11"],
+    install_requires=["av", "Pillow<9", "rich<11"],
     python_requires=">=3.6",
     package_data={"rtspbrute": ["credentials.txt", "routes.txt"]},
     entry_points={"console_scripts": ["rtspbrute = rtspbrute.__main__:main"]},
