@@ -73,8 +73,8 @@ def attack(target: RTSPClient, port=None, route=None, credentials=None):
         return True
         
     finally:
-        # Clean up socket if there was an error
-        if not target.is_connected and target.socket:
+        # Always clean up socket if it exists
+        if target.socket:
             try:
                 target.socket.close()
             except:
@@ -104,7 +104,7 @@ def attack_route(target: RTSPClient):
                     target.routes.append(route)
                     return target
     finally:
-        # Ensure socket is cleaned up
+        # Always clean up socket if it exists
         if target.socket:
             try:
                 target.socket.close()
@@ -149,7 +149,7 @@ def attack_credentials(target: RTSPClient):
                 return target
                 
     finally:
-        # Ensure socket is cleaned up
+        # Always clean up socket if it exists
         if target.socket:
             try:
                 target.socket.close()

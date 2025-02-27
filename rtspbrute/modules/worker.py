@@ -53,26 +53,33 @@ def brute_routes(input_queue: Queue, output_queue: Queue) -> None:
 
 
 def brute_credentials(input_queue: Queue, output_queue: Queue) -> None:
-    while True:
-        try:
-            target: RTSPClient = input_queue.get(timeout=5)
-            if target is None:
-                break
-
-            result = attack_credentials(target)
-            if result:
-                PROGRESS_BAR.add_total(SCREENSHOT_PROGRESS)
-                output_queue.put(str(result))
-
-            PROGRESS_BAR.update(BRUTE_PROGRESS, advance=1)
-            input_queue.task_done()
+    try:
+        with thread_lock:
+            active_threads.add(current_thread())
             
-        except Empty:
-            continue
-        except Exception as e:
-            logger.error(f"Error in brute_credentials: {e}")
-            if target:
+        while True:
+            try:
+                target: RTSPClient = input_queue.get(timeout=5)
+                if target is None:
+                    break
+
+                result = attack_credentials(target)
+                if result:
+                    PROGRESS_BAR.add_total(SCREENSHOT_PROGRESS)
+                    output_queue.put(str(result))
+
+                PROGRESS_BAR.update(BRUTE_PROGRESS, advance=1)
                 input_queue.task_done()
+                
+            except Empty:
+                continue
+            except Exception as e:
+                logger.error(f"Error in brute_credentials: {e}")
+                if target:
+                    input_queue.task_done()
+    finally:
+        with thread_lock:
+            active_threads.remove(current_thread())
 
 
 def screenshot_targets(input_queue: Queue) -> None:
