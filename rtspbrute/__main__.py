@@ -7,7 +7,6 @@ from pathlib import Path
 from queue import Queue
 from typing import Callable, List
 
-import av
 from rich.panel import Panel
 
 from rtspbrute.modules import attack, utils, worker
@@ -58,9 +57,6 @@ def main():
             )
         )
         logger.addHandler(file_handler)
-    # This disables ValueError from av module printing to console, but this also
-    # means we won't get any logs from av, if they aren't FATAL or PANIC level.
-    av.logging.set_level(av.logging.FATAL)
 
     # Progress output set up
     worker.PROGRESS_BAR = progress_bar

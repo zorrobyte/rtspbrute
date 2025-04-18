@@ -69,14 +69,3 @@ def test_attack_credentials(monkeypatch):
     successful = attack.attack_credentials(target)
     assert successful
     assert target.credentials == valid_credentials
-
-
-def test_is_video_stream():
-    CodecContext = namedtuple("CodecContext", ["format"])
-    Stream = namedtuple("Stream", ["profile", "start_time", "codec_context"])
-
-    valid_stream = Stream("1", 12301230, CodecContext("YUV"))
-    assert attack._is_video_stream(valid_stream)
-
-    bad_stream = Stream("1", 12301230, CodecContext(None))
-    assert not attack._is_video_stream(bad_stream)

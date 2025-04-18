@@ -34,7 +34,7 @@ This software is provided for research and ethical uses only!
 ### Requirements
 
 - `python` (> `3.6`)
-- `av`
+- `ffmpeg` (must be installed and available in PATH)
 - `Pillow`
 - `rich`
 
@@ -43,6 +43,13 @@ Install with `pip` or your favorite PyPi package manager.
 ```
 pip install rtspbrute
 ```
+
+### Installing ffmpeg
+
+- **Ubuntu/Debian**: `sudo apt install ffmpeg`
+- **CentOS/RHEL**: `sudo yum install ffmpeg`
+- **macOS**: `brew install ffmpeg`
+- **Windows**: Download from [ffmpeg.org](https://ffmpeg.org/download.html) or install via [Chocolatey](https://chocolatey.org/): `choco install ffmpeg`
 
 ## CLI
 
@@ -98,6 +105,6 @@ user:user
 
 - **"-ct, --check-threads"** (`500`): Set custom number of threads to brute-force the routes
 - **"-bt, --brute-threads"** (`200`): Set custom number of threads to brute-force the credentials
-- **"-st, --screenshot-threads"** (`20`): Set custom number of threads to screenshot the streams. Smaller number leads to more successful screenshots: when there's too much threads PyAV will throw errors and wouldn't connect to target.
+- **"-st, --screenshot-threads"** (`20`): Set custom number of threads to screenshot the streams. Smaller number leads to more successful screenshots: too many concurrent ffmpeg processes can lead to resource issues.
 - **"-T, --timeout"** (`2`): Set custom timeout value for socket connections
 - **"-d, --debug"** (`False`): Enable debug logging to `debug.log` file
