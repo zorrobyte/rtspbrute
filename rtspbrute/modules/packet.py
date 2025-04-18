@@ -15,7 +15,11 @@ def _ha1(username, realm, password):
 
 
 def _digest_auth(option, ip, port, path, credentials, realm, nonce):
-    username, password = credentials.split(":")
+    # Handle empty username or password
+    parts = credentials.split(":", 1)
+    username = parts[0] if parts[0] else ""
+    password = parts[1] if len(parts) > 1 else ""
+    
     uri = f"rtsp://{ip}:{port}{path}"
     HA1 = _ha1(username, realm, password)
     HA2 = hashlib.md5(f"{option}:{uri}".encode("ascii")).hexdigest()
