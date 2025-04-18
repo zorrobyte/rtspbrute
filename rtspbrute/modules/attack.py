@@ -127,57 +127,19 @@ def get_screenshot(rtsp_url: str):
         file_name = escape_chars(f"{rtsp_url.lstrip('rtsp://')}.jpg")
         file_path = PICS_FOLDER / file_name
         
-        # Parse URL for auth if needed
-        auth_params = []
-        if '@' in rtsp_url:
-            # Extract credentials from URL
-            auth_part = rtsp_url.split('rtsp://')[1].split('@')[0]
-            if ':' in auth_part:
-                username, password = auth_part.split(':', 1)
-                # Add explicit auth parameters
-                auth_params = [
-                    '-rtsp_transport', 'tcp',
-                    '-rtsp_flags', 'prefer_tcp',
-                    '-auth_type', 'basic',  # Try basic auth first
-                    '-username', username,
-                    '-password', password,
-                ]
-                # Recreate URL without credentials for use with explicit auth
-                host_part = rtsp_url.split('@', 1)[1]
-                rtsp_url_clean = f"rtsp://{host_part}"
-            else:
-                # Invalid auth format, use original URL
-                auth_params = ['-rtsp_transport', 'tcp', '-rtsp_flags', 'prefer_tcp']
-                rtsp_url_clean = rtsp_url
-        else:
-            # No auth in URL
-            auth_params = ['-rtsp_transport', 'tcp', '-rtsp_flags', 'prefer_tcp']
-            rtsp_url_clean = rtsp_url
-        
-        # Use ffmpeg directly to capture a single frame
+        # Use ffmpeg directly to capture a single frame - simple parameters that are widely supported
         cmd = [
             'ffmpeg',
-            *auth_params,                    # Auth parameters if needed
-            '-stimeout', '10000000',         # Socket timeout in microseconds (10 seconds)
-            '-i', rtsp_url_clean if '@' in rtsp_url else rtsp_url,  # Input URL (clean if auth extracted)
+            '-rtsp_transport', 'tcp',        # Use TCP for RTSP (more reliable)
+            '-i', rtsp_url,                  # Input URL with embedded auth
             '-frames:v', '1',                # Capture just one frame
-            '-an',                           # Disable audio
-            '-vf', 'scale=1280:-1',          # Scale to reasonable size
-            '-q:v', '2',                     # High quality jpeg
             '-y',                            # Overwrite output file
-            '-loglevel', 'error',            # Only show errors in logs
             str(file_path)                   # Output file path
         ]
         
         if logger_is_enabled:
-            # Log the command with password masked for security
-            cmd_safe = []
-            for i, param in enumerate(cmd):
-                if i > 0 and cmd[i-1] == '-password':
-                    cmd_safe.append('*****')
-                else:
-                    cmd_safe.append(param)
-            logger.debug(f"Executing: {' '.join(str(x) for x in cmd_safe)}")
+            # Log command (don't mask password here as it's part of the URL)
+            logger.debug(f"Executing: {' '.join(str(x) for x in cmd)}")
         
         # Run ffmpeg with timeout
         result = subprocess.run(
@@ -186,24 +148,6 @@ def get_screenshot(rtsp_url: str):
             stderr=subprocess.PIPE,
             timeout=15  # Process timeout in seconds
         )
-        
-        # If first attempt fails with basic auth, try with digest auth
-        if result.returncode != 0 and '@' in rtsp_url and '-auth_type' in auth_params:
-            # Update auth type to digest
-            digest_cmd = list(cmd)
-            auth_type_index = digest_cmd.index('-auth_type') + 1
-            digest_cmd[auth_type_index] = 'digest'
-            
-            if logger_is_enabled:
-                logger.debug(f"Basic auth failed, trying digest auth for {rtsp_url_clean}")
-            
-            # Run again with digest auth
-            result = subprocess.run(
-                digest_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=15
-            )
         
         # Check if the screenshot was created successfully
         if file_path.exists() and file_path.stat().st_size > 0:
