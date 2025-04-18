@@ -77,7 +77,7 @@ parser.add_argument(
 parser.add_argument(
     "-bt",
     "--brute-threads",
-    default=200,
+    default=500,
     type=int,
     help="the number of threads to brute-force the credentials",
     metavar="N",
@@ -85,7 +85,7 @@ parser.add_argument(
 parser.add_argument(
     "-st",
     "--screenshot-threads",
-    default=20,
+    default=2,
     type=int,
     help="the number of threads to screenshot the streams",
     metavar="N",
