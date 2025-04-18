@@ -85,7 +85,7 @@ parser.add_argument(
 parser.add_argument(
     "-st",
     "--screenshot-threads",
-    default=2,
+    default=20,
     type=int,
     help="the number of threads to screenshot the streams",
     metavar="N",
