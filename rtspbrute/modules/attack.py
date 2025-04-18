@@ -1,8 +1,7 @@
 import logging
+import subprocess
 from pathlib import Path
-from typing import List
-
-import av
+from typing import List, Union
 
 from rtspbrute.modules.cli.output import console
 from rtspbrute.modules.rtsp import RTSPClient, Status
@@ -133,45 +132,61 @@ def _is_video_stream(stream):
 
 def get_screenshot(rtsp_url: str):
     try:
-        with av.open(
-            rtsp_url,
-            options={
-                "rtsp_transport": "tcp",
-                "rtsp_flags": "prefer_tcp",
-                "stimeout": "3000000",
-            },
-            timeout=5.0,
-        ) as container:
-            stream = container.streams.video[0]
-            if _is_video_stream(stream):
-                file_name = escape_chars(f"{rtsp_url.lstrip('rtsp://')}.jpg")
-                file_path = PICS_FOLDER / file_name
-                stream.thread_type = "AUTO"
-                for frame in container.decode(video=0):
-                    frame.to_image().save(file_path)
-                    break
-                console.print(
-                    f"[bold]Captured screenshot for",
-                    f"[underline cyan]{rtsp_url}",
-                )
-                if logger_is_enabled:
-                    logger.debug(f"Captured screenshot for {rtsp_url}")
-                return file_path
-            else:
-                if logger_is_enabled:
-                    logger.debug(
-                        f"Broken video stream or unknown issues with {rtsp_url}"
-                    )
-                return
-    except (MemoryError, PermissionError, av.InvalidDataError) as e:
-        # These errors occur when there's too much SCREENSHOT_THREADS.
-        if logger_is_enabled:
-            logger.debug(f"Missed screenshot of {rtsp_url}: {repr(e)}")
-        console.print(
-            f"[italic red]Missed screenshot of [underline]{rtsp_url}[/underline] - if you see this message a lot, consider reducing the number of screenshot threads",
+        file_name = escape_chars(f"{rtsp_url.lstrip('rtsp://')}.jpg")
+        file_path = PICS_FOLDER / file_name
+        
+        # Use ffmpeg directly to capture a single frame
+        cmd = [
+            'ffmpeg',
+            '-rtsp_transport', 'tcp',        # Use TCP for RTSP
+            '-timeout', '10000000',          # Socket timeout in microseconds (10 seconds)
+            '-stimeout', '10000000',         # Socket timeout in microseconds (10 seconds)
+            '-i', rtsp_url,                  # Input URL
+            '-frames:v', '1',                # Capture just one frame
+            '-y',                            # Overwrite output file
+            '-loglevel', 'error',            # Only show errors in logs
+            '-timeout', '10',                # Overall timeout in seconds
+            str(file_path)                   # Output file path
+        ]
+        
+        # Run ffmpeg with timeout
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=15  # Process timeout in seconds (slightly longer than ffmpeg timeout)
         )
-        return
+        
+        # Check if the screenshot was created successfully
+        if file_path.exists() and file_path.stat().st_size > 0:
+            console.print(
+                f"[bold]Captured screenshot for",
+                f"[underline cyan]{rtsp_url}",
+            )
+            if logger_is_enabled:
+                logger.debug(f"Captured screenshot for {rtsp_url}")
+            return file_path
+        else:
+            if logger_is_enabled:
+                stderr = result.stderr.decode('utf-8', errors='ignore')
+                logger.debug(f"Failed to capture screenshot for {rtsp_url}: {stderr}")
+            return None
+            
+    except subprocess.TimeoutExpired:
+        if logger_is_enabled:
+            logger.debug(f"Screenshot timed out for {rtsp_url}")
+        console.print(
+            f"[italic yellow]Screenshot timed out for [underline]{rtsp_url}[/underline]",
+        )
+        return None
+    except (PermissionError, FileNotFoundError) as e:
+        if logger_is_enabled:
+            logger.debug(f"File error for {rtsp_url}: {repr(e)}")
+        console.print(
+            f"[italic red]File error for [underline]{rtsp_url}[/underline]: {str(e)}",
+        )
+        return None
     except Exception as e:
         if logger_is_enabled:
             logger.debug(f"get_screenshot failed with {rtsp_url}: {repr(e)}")
-        return
+        return None
