@@ -41,9 +41,9 @@ setuptools.setup(
     },
     packages=setuptools.find_packages(),
     install_requires=[
-        "av>=10,<13",
-        "Pillow>=10,<12",
-        "rich>=13,<14",
+        "av",
+        "Pillow",
+        "rich",
     ],
     python_requires=">=3.8",
     package_data={"rtspbrute": ["credentials.txt", "routes.txt"]},
