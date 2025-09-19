@@ -51,10 +51,41 @@ def screenshot_targets(input_queue: Queue) -> None:
         if target_url is None:
             break
 
-        image = get_screenshot(target_url)
-        if image:
-            with LOCK:
-                append_result(image, target_url)
+        # check if "/Streaming/Channels/101/" is in target_url
+        if "/Streaming/Channels/101/" in target_url:
+            # iterate "/Streaming/Channels/101/" to "/Streaming/Channels/1601/"
+            for i in range(1, 17):
+                modified_target_url = target_url.replace("/Streaming/Channels/101/", f"/Streaming/Channels/{i}01/")
+                image = get_screenshot(modified_target_url)
+                if image:
+                    with LOCK:
+                        append_result(image, modified_target_url)
+                PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
+        # if "/Streaming/Channels/101/" is not in target_url
+        else:
+            # check if target_url doesn't have anything after :554/
+            if target_url.endswith(':554/'):
+                # first try the unmodified URL
+                image = get_screenshot(target_url)
+                if image:
+                    with LOCK:
+                        append_result(image, target_url)
+                PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
 
-        PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
+                # append and iterate /cam/realmonitor?channel=1&subtype=0, /cam/realmonitor?channel=2&subtype=0, ..., /cam/realmonitor?channel=8&subtype=0
+                # disabled for now as it causes dupes, need some sort of dupe handler, but hard problem
+                for i in range(1, 17):
+                    modified_target_url = target_url + f'cam/realmonitor?channel={i}&subtype=0'
+                    image = get_screenshot(modified_target_url)
+                    if image:
+                        with LOCK:
+                            append_result(image, modified_target_url)
+                    PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
+            else:
+                image = get_screenshot(target_url)
+                if image:
+                    with LOCK:
+                        append_result(image, target_url)
+                PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
+
         input_queue.task_done()
