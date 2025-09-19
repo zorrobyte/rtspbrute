@@ -27,9 +27,12 @@
 /ONVIF/MediaInput
 /ONVIF/MediaInput?profile=4_def_profile6
 /StdCh1
-/Streaming/Channels/1
+/Streaming/Channels/101
 /Streaming/Channels/101/
+/Streaming/Channels/102
+/Streaming/Channels/102/
 /Streaming/Unicast/channels/101
+/Streaming/Channels/1
 /StreamingSetting?version=1.0&action=getRTSPStream&ChannelID=1&ChannelName=Channel1
 /VideoInput/1/h264/1
 /VideoInput/1/mpeg4/1
