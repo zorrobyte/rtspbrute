@@ -74,13 +74,13 @@ def screenshot_targets(input_queue: Queue) -> None:
 
                 # append and iterate /cam/realmonitor?channel=1&subtype=0, /cam/realmonitor?channel=2&subtype=0, ..., /cam/realmonitor?channel=8&subtype=0
                 # disabled for now as it causes dupes, need some sort of dupe handler, but hard problem
-                for i in range(1, 17):
-                    modified_target_url = target_url + f'cam/realmonitor?channel={i}&subtype=0'
-                    image = get_screenshot(modified_target_url)
-                    if image:
-                        with LOCK:
-                            append_result(image, modified_target_url)
-                    PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
+                #for i in range(1, 17):
+                #    modified_target_url = target_url + f'cam/realmonitor?channel={i}&subtype=0'
+                #    image = get_screenshot(modified_target_url)
+                #    if image:
+                #        with LOCK:
+                #            append_result(image, modified_target_url)
+                #    PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
             else:
                 image = get_screenshot(target_url)
                 if image:
