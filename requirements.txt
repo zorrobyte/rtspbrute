@@ -1,3 +1,4 @@
 av==14.3.0
 Pillow==11.2.1
 rich==14.0.0
+imagehash==4.3.2
